@@ -51,6 +51,7 @@ Session::Session( Application& application,
   m_senderDefaultApplVerID(ApplVerID_FIX50),
   m_targetDefaultApplVerID(ApplVerID_FIX50),
   m_sendRedundantResendRequests( false ),
+  m_useCMEResendFunctionality( false ),
   m_checkCompId( true ),
   m_checkLatency( true ),
   m_maxLatency( 120 ),
@@ -361,6 +362,18 @@ void Session::nextResendRequest( const Message& resendRequest, const UtcTimeStam
        + IntConvertor::convert( beginSeqNo ) +
                    " TO: " + IntConvertor::convert( endSeqNo ), LOG_LEVEL_INFO );
 
+
+  if (m_useCMEResendFunctionality) {
+    PossDupFlag possDupFlag;
+    if (resendRequest.getHeader().isSetField(possDupFlag)) {
+      resendRequest.getHeader().getField(possDupFlag);
+      if (possDupFlag == true) {
+        m_state.onEvent("Got duplicate resend request during active recovery. Ignoring.", LOG_LEVEL_INFO);
+        return;
+      }
+    }
+  }
+
   std::string beginString = m_sessionID.getBeginString();
   if ( (beginString >= FIX::BeginString_FIX42 && endSeqNo == 0) ||
        (beginString <= FIX::BeginString_FIX42 && endSeqNo == 999999) ||
@@ -648,7 +661,7 @@ void Session::generateLogon( const Message& aLogon )
   m_state.sentLogon( true );
 }
 
-void Session::generateResendRequest( const BeginString& beginString, const MsgSeqNum& msgSeqNum )
+void Session::generateResendRequest( const BeginString& beginString, const MsgSeqNum& msgSeqNum, bool doPossDupFlag )
 {
   Message resendRequest;
   BeginSeqNo beginSeqNo( ( int ) getExpectedTargetNum() );
@@ -660,6 +673,9 @@ void Session::generateResendRequest( const BeginString& beginString, const MsgSe
   resendRequest.getHeader().setField( MsgType( "2" ) );
   resendRequest.setField( beginSeqNo );
   resendRequest.setField( endSeqNo );
+  if (doPossDupFlag)
+    resendRequest.getHeader().setField( PossDupFlag(PossDupFlag_YES) );
+
   fill( resendRequest.getHeader() );
   sendRaw( resendRequest );
 
@@ -1140,14 +1156,20 @@ void Session::doTargetTooHigh( const Message& msg )
   {
     SessionState::ResendRange range = m_state.resendRange();
 
-    if( !m_sendRedundantResendRequests && msgSeqNum >= range.first )
+    if( msgSeqNum >= range.first )
     {
-          m_state.onEvent ("Already sent ResendRequest FROM: " +
-                           IntConvertor::convert (range.first) + " TO: " +
-                           IntConvertor::convert (range.second) +
-                           ".  Not sending another.", LOG_LEVEL_INFO);
-          return;
-    }
+      if (!m_sendRedundantResendRequests && !m_useCMEResendFunctionality) {
+        m_state.onEvent ("Already sent ResendRequest FROM: " +
+                         IntConvertor::convert (range.first) + " TO: " +
+                         IntConvertor::convert (range.second) +
+                         ".  Not sending another.", LOG_LEVEL_INFO);
+        return;
+      } else if (m_useCMEResendFunctionality) {
+        generateResendRequest(beginString,range.first,true);
+        return;
+      }
+   }
+
   }
 
   generateResendRequest( beginString, msgSeqNum );
