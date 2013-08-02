@@ -284,6 +284,8 @@ public:
   { m_checkFieldsHaveValues = value; }
   void checkUserDefinedFields( bool value )
   { m_checkUserDefinedFields = value; }
+  void checkIfMsgHasTag( bool value )
+  { m_checkIfMsgHasTag = value; }
 
   /// Validate a message.
   static void validate( const Message& message,
@@ -504,6 +506,7 @@ private:
   bool m_checkFieldsOutOfOrder;
   bool m_checkFieldsHaveValues;
   bool m_checkUserDefinedFields;
+  bool m_checkIfMsgHasTag;
   BeginString m_beginString;
   MsgTypeToField m_messageFields;
   MsgTypeToField m_requiredFields;

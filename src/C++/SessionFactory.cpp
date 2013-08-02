@@ -199,12 +199,12 @@ Session* SessionFactory::create( const SessionID& sessionID,
     pSession->setPersistMessages( settings.getBool( PERSIST_MESSAGES ) );
   if ( settings.has( VALIDATE_LENGTH_AND_CHECKSUM ) )
     pSession->setValidateLengthAndChecksum( settings.getBool( VALIDATE_LENGTH_AND_CHECKSUM ) );
-   
+
   return pSession;
 }
 
-const DataDictionary * SessionFactory::createDataDictionary(const SessionID& sessionID, 
-                                                    const Dictionary& settings, 
+const DataDictionary * SessionFactory::createDataDictionary(const SessionID& sessionID,
+                                                    const Dictionary& settings,
                                                     const std::string& settingsKey) throw(ConfigError)
 {
   DataDictionary * pDD = 0;
@@ -224,6 +224,8 @@ const DataDictionary * SessionFactory::createDataDictionary(const SessionID& ses
 
   if( settings.has( VALIDATE_FIELDS_OUT_OF_ORDER ) )
     pCopyOfDD->checkFieldsOutOfOrder( settings.getBool( VALIDATE_FIELDS_OUT_OF_ORDER ) );
+  if( settings.has( CHECK_IF_MESSAGE_CONTAINS_TAGS ))
+    pCopyOfDD->checkIfMsgHasTag( settings.getBool( CHECK_IF_MESSAGE_CONTAINS_TAGS ) );
   if( settings.has( VALIDATE_FIELDS_HAVE_VALUES ) )
     pCopyOfDD->checkFieldsHaveValues( settings.getBool( VALIDATE_FIELDS_HAVE_VALUES ) );
   if( settings.has( VALIDATE_USER_DEFINED_FIELDS ) )
@@ -232,13 +234,13 @@ const DataDictionary * SessionFactory::createDataDictionary(const SessionID& ses
   return pCopyOfDD;
 }
 
-void SessionFactory::processFixtDataDictionaries(const SessionID& sessionID, 
-                                                 const Dictionary& settings, 
+void SessionFactory::processFixtDataDictionaries(const SessionID& sessionID,
+                                                 const Dictionary& settings,
                                                  DataDictionaryProvider& provider) throw(ConfigError)
 {
   const DataDictionary * pDataDictionary = createDataDictionary(sessionID, settings, TRANSPORT_DATA_DICTIONARY);
   provider.addTransportDataDictionary(sessionID.getBeginString(), pDataDictionary);
-  
+
   for(Dictionary::const_iterator data = settings.begin(); data != settings.end(); ++data)
   {
     const std::string& key = data->first;
@@ -256,15 +258,15 @@ void SessionFactory::processFixtDataDictionaries(const SessionID& sessionID,
         if( offset == std::string::npos )
           throw ConfigError(std::string("Malformed ") + APP_DATA_DICTIONARY + ": " + key);
         std::string beginStringQualifier = key.substr(offset+1);
-        provider.addApplicationDataDictionary(Message::toApplVerID(beginStringQualifier), 
+        provider.addApplicationDataDictionary(Message::toApplVerID(beginStringQualifier),
             createDataDictionary(sessionID, settings, key));
       }
     }
   }
 }
 
-void SessionFactory::processFixDataDictionary(const SessionID& sessionID, 
-                                              const Dictionary& settings, 
+void SessionFactory::processFixDataDictionary(const SessionID& sessionID,
+                                              const Dictionary& settings,
                                               DataDictionaryProvider& provider) throw(ConfigError)
 {
   const DataDictionary * pDataDictionary = createDataDictionary(sessionID, settings, DATA_DICTIONARY);

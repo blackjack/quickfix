@@ -46,13 +46,13 @@ namespace FIX
 {
 DataDictionary::DataDictionary()
 : m_hasVersion( false ), m_checkFieldsOutOfOrder( true ),
-  m_checkFieldsHaveValues( true ), m_checkUserDefinedFields( true )
+  m_checkFieldsHaveValues( true ), m_checkUserDefinedFields( true ), m_checkIfMsgHasTag( true )
 {}
 
 DataDictionary::DataDictionary( std::istream& stream )
 throw( ConfigError )
 : m_hasVersion( false ), m_checkFieldsOutOfOrder( true ),
-  m_checkFieldsHaveValues( true ), m_checkUserDefinedFields( true )
+  m_checkFieldsHaveValues( true ), m_checkUserDefinedFields( true ), m_checkIfMsgHasTag( true )
 {
   readFromStream( stream );
 }
@@ -60,7 +60,7 @@ throw( ConfigError )
 DataDictionary::DataDictionary( const std::string& url )
 throw( ConfigError )
 : m_hasVersion( false ), m_checkFieldsOutOfOrder( true ),
-  m_checkFieldsHaveValues( true ), m_checkUserDefinedFields( true ),
+  m_checkFieldsHaveValues( true ), m_checkUserDefinedFields( true ), m_checkIfMsgHasTag( true ),
   m_orderedFieldsArray(0)
 {
   readFromURL( url );
@@ -84,6 +84,7 @@ DataDictionary& DataDictionary::operator=( const DataDictionary& rhs )
   m_checkFieldsOutOfOrder = rhs.m_checkFieldsOutOfOrder;
   m_checkFieldsHaveValues = rhs.m_checkFieldsHaveValues;
   m_checkUserDefinedFields = rhs.m_checkUserDefinedFields;
+  m_checkIfMsgHasTag = rhs.m_checkIfMsgHasTag;
   m_beginString = rhs.m_beginString;
   m_messageFields = rhs.m_messageFields;
   m_requiredFields = rhs.m_requiredFields;
@@ -112,7 +113,7 @@ void DataDictionary::validate( const Message& message,
                                const DataDictionary* const pSessionDD,
                                const DataDictionary* const pAppDD )
 throw( FIX::Exception )
-{  
+{
   const bool bodyOnly = pSessionDD == 0;
   const Header& header = message.getHeader();
   const BeginString& beginString = FIELD_GET_REF( header, BeginString );
@@ -126,7 +127,7 @@ throw( FIX::Exception )
   }
 
   int field = 0;
-  if( (pSessionDD !=0 && pSessionDD->m_checkFieldsOutOfOrder) 
+  if( (pSessionDD !=0 && pSessionDD->m_checkFieldsOutOfOrder)
       || (pAppDD != 0 && pAppDD->m_checkFieldsOutOfOrder) )
   {
     if ( !message.hasValidStructure(field) )
@@ -172,7 +173,8 @@ void DataDictionary::iterate( const FieldMap& map, const MsgType& msgType ) cons
       if ( !Message::isHeaderField( field, this )
            && !Message::isTrailerField( field, this ) )
       {
-        checkIsInMessage( field, msgType );
+        if ( m_checkIfMsgHasTag )
+          checkIsInMessage( field, msgType );
         checkGroupCount( field, map, msgType );
       }
     }
