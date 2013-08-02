@@ -154,6 +154,11 @@ public:
   void setMaxLatency ( int value )
     { m_maxLatency = value; }
 
+  int getMaxResendNumber()
+    { return m_maxResendNumber; }
+  void setMaxResendNumber( int value )
+    { m_maxResendNumber = value; }
+
   int getLogonTimeout()
     { return m_state.logonTimeout(); }
   void setLogonTimeout ( int value )
@@ -315,6 +320,7 @@ private:
   bool m_checkCompId;
   bool m_checkLatency;
   int m_maxLatency;
+  int m_maxResendNumber;
   bool m_resetOnLogon;
   bool m_resetOnLogout;
   bool m_resetOnDisconnect;

@@ -179,6 +179,8 @@ Session* SessionFactory::create( const SessionID& sessionID,
     pSession->setCheckLatency( settings.getBool( CHECK_LATENCY ) );
   if ( settings.has( MAX_LATENCY ) )
     pSession->setMaxLatency( settings.getLong( MAX_LATENCY ) );
+  if ( settings.has( MAX_RESEND_NUMBER ) )
+    pSession->setMaxResendNumber( settings.getLong( MAX_RESEND_NUMBER ) );
   if ( settings.has( LOGON_TIMEOUT ) )
     pSession->setLogonTimeout( settings.getLong( LOGON_TIMEOUT ) );
   if ( settings.has( LOGOUT_TIMEOUT ) )

@@ -59,6 +59,7 @@ const char LOGOUT_DAY[] = "LogoutDay";
 const char CHECK_COMPID[] = "CheckCompID";
 const char CHECK_LATENCY[] = "CheckLatency";
 const char MAX_LATENCY[] = "MaxLatency";
+const char MAX_RESEND_NUMBER[] = "MaxResendNumber";
 const char HEARTBTINT[] = "HeartBtInt";
 const char SOCKET_ACCEPT_PORT[] = "SocketAcceptPort";
 const char SOCKET_REUSE_ADDRESS[] = "SocketReuseAddress";

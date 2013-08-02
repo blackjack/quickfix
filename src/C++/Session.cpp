@@ -55,6 +55,7 @@ Session::Session( Application& application,
   m_checkCompId( true ),
   m_checkLatency( true ),
   m_maxLatency( 120 ),
+  m_maxResendNumber(0),
   m_resetOnLogon( false ),
   m_resetOnLogout( false ),
   m_resetOnDisconnect( false ),
@@ -1151,6 +1152,10 @@ void Session::doTargetTooHigh( const Message& msg )
                    + IntConvertor::convert( msgSeqNum ), LOG_LEVEL_NOTICE );
 
   m_state.queue( msgSeqNum, msg );
+
+  if (m_maxResendNumber !=0 && msgSeqNum - getExpectedTargetNum() > m_maxResendNumber ) {
+      m_state.setNextTargetMsgSeqNum(msgSeqNum - m_maxResendNumber + 2);
+  }
 
   if( m_state.resendRequested() )
   {
