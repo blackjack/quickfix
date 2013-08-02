@@ -150,7 +150,7 @@ void ThreadedSocketInitiator::doConnect( const SessionID& s, const Dictionary& d
       socket_setsockopt( socket, SO_RCVBUF, m_rcvBufSize );
 
     setPending( s );
-    log->onEvent( "Connecting to " + address + " on port " + IntConvertor::convert((unsigned short)port) );
+    log->onEvent( "Connecting to " + address + " on port " + IntConvertor::convert((unsigned short)port) , LOG_LEVEL_NOTICE );
 
     ThreadedSocketConnection* pConnection =
       new ThreadedSocketConnection( s, socket, address, port, getApplication(), getLog() );
@@ -210,7 +210,7 @@ THREAD_PROC ThreadedSocketInitiator::socketThread( void* p )
 
   if( !pConnection->connect() )
   {
-    pInitiator->getLog()->onEvent( "Connection failed" );
+    pInitiator->getLog()->onEvent( "Connection failed" , LOG_LEVEL_ERR);
     pConnection->disconnect();
     delete pConnection;
     pInitiator->removeThread( socket );
@@ -219,7 +219,7 @@ THREAD_PROC ThreadedSocketInitiator::socketThread( void* p )
   }
 
   pInitiator->setConnected( sessionID );
-  pInitiator->getLog()->onEvent( "Connection succeeded" );
+  pInitiator->getLog()->onEvent( "Connection succeeded" , LOG_LEVEL_NOTICE);
 
   pSession->next();
 

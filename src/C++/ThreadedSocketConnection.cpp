@@ -124,7 +124,7 @@ bool ThreadedSocketConnection::read()
 
     if( m_pSession )
     {
-      m_pSession->getLog()->onEvent( e.what() );
+      m_pSession->getLog()->onEvent( e.what() , LOG_LEVEL_ERR );
       m_pSession->disconnect();
     }
     else
@@ -179,7 +179,7 @@ bool ThreadedSocketConnection::setSession( const std::string& msg )
   {
     if( m_pLog )
     {
-      m_pLog->onEvent( "Session not found for incoming message: " + msg );
+      m_pLog->onEvent( "Session not found for incoming message: " + msg , LOG_LEVEL_WARNING);
       m_pLog->onIncoming( msg );
     }
     return false;

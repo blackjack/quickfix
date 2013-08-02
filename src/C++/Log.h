@@ -34,6 +34,17 @@
 
 namespace FIX
 {
+
+const int LOG_LEVEL_EMERG = 0;
+const int LOG_LEVEL_ALERT = 1;
+const int LOG_LEVEL_CRIT = 2;
+const int LOG_LEVEL_ERR = 3;
+const int LOG_LEVEL_WARNING = 4;
+const int LOG_LEVEL_NOTICE = 5;
+const int LOG_LEVEL_INFO = 6;
+const int LOG_LEVEL_DEBUG = 7;
+const int LOG_LEVEL_RAW = 8;
+
 class Log;
 
 /**
@@ -87,7 +98,7 @@ public:
   virtual void backup() = 0;
   virtual void onIncoming( const std::string& ) = 0;
   virtual void onOutgoing( const std::string& ) = 0;
-  virtual void onEvent( const std::string& ) = 0;
+  virtual void onEvent( const std::string&, int = LOG_LEVEL_NOTICE ) = 0;
 };
 /*! @} */
 
@@ -104,7 +115,7 @@ public:
   void backup() {}
   void onIncoming( const std::string& ) {}
   void onOutgoing( const std::string& ) {}
-  void onEvent( const std::string& ) {}
+  void onEvent( const std::string&, int loglevel = LOG_LEVEL_NOTICE ) {}
 };
 
 /**
@@ -149,7 +160,7 @@ public:
               << "  (" << value << ")" << std::endl;
   }
 
-  void onEvent( const std::string& value )
+  void onEvent( const std::string& value, int loglevel = LOG_LEVEL_NOTICE )
   {
     if ( !m_event ) return ;
     Locker l( s_mutex );

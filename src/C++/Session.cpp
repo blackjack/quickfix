@@ -36,7 +36,7 @@ Session::Sessions Session::s_registered;
 Mutex Session::s_mutex;
 
 #define LOGEX( method ) try { method; } catch( std::exception& e ) \
-  { m_state.onEvent( e.what() ); }
+  { m_state.onEvent( e.what(), LOG_LEVEL_ERR ); }
 
 Session::Session( Application& application,
                   MessageStoreFactory& messageStoreFactory,
@@ -52,10 +52,10 @@ Session::Session( Application& application,
   m_targetDefaultApplVerID(ApplVerID_FIX50),
   m_sendRedundantResendRequests( false ),
   m_checkCompId( true ),
-  m_checkLatency( true ), 
+  m_checkLatency( true ),
   m_maxLatency( 120 ),
   m_resetOnLogon( false ),
-  m_resetOnLogout( false ), 
+  m_resetOnLogout( false ),
   m_resetOnDisconnect( false ),
   m_refreshOnLogon( false ),
   m_millisecondsInTimeStamp( true ),
@@ -77,7 +77,7 @@ Session::Session( Application& application,
 
   addSession( *this );
   m_application.onCreate( m_sessionID );
-  m_state.onEvent( "Created session" );
+  m_state.onEvent( "Created session", LOG_LEVEL_NOTICE);
 }
 
 Session::~Session()
@@ -140,7 +140,7 @@ void Session::next( const UtcTimeStamp& timeStamp )
       {
         if( !m_state.sentLogout() )
         {
-          m_state.onEvent( "Initiated logout request" );
+          m_state.onEvent( "Initiated logout request", LOG_LEVEL_NOTICE );
           generateLogout( m_state.logoutReason() );
         }
       }
@@ -153,11 +153,11 @@ void Session::next( const UtcTimeStamp& timeStamp )
       if ( m_state.shouldSendLogon() && isLogonTime(timeStamp) )
       {
         generateLogon();
-        m_state.onEvent( "Initiated logon request" );
+        m_state.onEvent( "Initiated logon request", LOG_LEVEL_NOTICE );
       }
       else if ( m_state.alreadySentLogon() && m_state.logonTimedOut() )
       {
-        m_state.onEvent( "Timed out waiting for logon response" );
+        m_state.onEvent( "Timed out waiting for logon response", LOG_LEVEL_WARNING );
         disconnect();
       }
       return ;
@@ -167,7 +167,7 @@ void Session::next( const UtcTimeStamp& timeStamp )
 
     if ( m_state.logoutTimedOut() )
     {
-      m_state.onEvent( "Timed out waiting for logout response" );
+      m_state.onEvent( "Timed out waiting for logout response", LOG_LEVEL_WARNING );
       disconnect();
     }
 
@@ -175,7 +175,7 @@ void Session::next( const UtcTimeStamp& timeStamp )
 
     if ( m_state.timedOut() )
     {
-      m_state.onEvent( "Timed out waiting for heartbeat" );
+      m_state.onEvent( "Timed out waiting for heartbeat", LOG_LEVEL_ERR );
       disconnect();
     }
     else
@@ -184,7 +184,7 @@ void Session::next( const UtcTimeStamp& timeStamp )
       {
         generateTestRequest( "TEST" );
         m_state.testRequest( m_state.testRequest() + 1 );
-        m_state.onEvent( "Sent test request TEST" );
+        m_state.onEvent( "Sent test request TEST", LOG_LEVEL_INFO );
       }
       else if ( m_state.needHeartbeat() )
       {
@@ -194,7 +194,7 @@ void Session::next( const UtcTimeStamp& timeStamp )
   }
   catch ( FIX::IOException& e )
   {
-    m_state.onEvent( e.what() );
+    m_state.onEvent( e.what(), LOG_LEVEL_ERR );
     disconnect();
   }
 }
@@ -218,7 +218,7 @@ void Session::nextLogon( const Message& logon, const UtcTimeStamp& timeStamp )
 
   if( !isLogonTime(timeStamp) )
   {
-    m_state.onEvent( "Received logon outside of valid logon time" );
+    m_state.onEvent( "Received logon outside of valid logon time", LOG_LEVEL_ERR );
     disconnect();
     return;
   }
@@ -230,13 +230,13 @@ void Session::nextLogon( const Message& logon, const UtcTimeStamp& timeStamp )
 
   if( m_state.receivedReset() )
   {
-    m_state.onEvent( "Logon contains ResetSeqNumFlag=Y, reseting sequence numbers to 1" );
+    m_state.onEvent( "Logon contains ResetSeqNumFlag=Y, reseting sequence numbers to 1", LOG_LEVEL_INFO );
     if( !m_state.sentReset() ) m_state.reset();
   }
 
   if( m_state.shouldSendLogon() && !m_state.receivedReset() )
   {
-    m_state.onEvent( "Received logon response before sending request" );
+    m_state.onEvent( "Received logon response before sending request", LOG_LEVEL_ERR );
     disconnect();
     return;
   }
@@ -248,17 +248,17 @@ void Session::nextLogon( const Message& logon, const UtcTimeStamp& timeStamp )
     return;
   m_state.receivedLogon( true );
 
-  if ( !m_state.initiate() 
+  if ( !m_state.initiate()
        || (m_state.receivedReset() && !m_state.sentReset()) )
   {
     if( logon.isSetField(m_state.heartBtInt()) )
       logon.getField( m_state.heartBtInt() );
-    m_state.onEvent( "Received logon request" );
+    m_state.onEvent( "Received logon request", LOG_LEVEL_NOTICE );
     generateLogon( logon );
-    m_state.onEvent( "Responding to logon request" );
+    m_state.onEvent( "Responding to logon request", LOG_LEVEL_INFO );
   }
   else
-    m_state.onEvent( "Received logon response" );
+    m_state.onEvent( "Received logon response", LOG_LEVEL_NOTICE );
 
   m_state.sentReset( false );
   m_state.receivedReset( false );
@@ -299,12 +299,12 @@ void Session::nextLogout( const Message& logout, const UtcTimeStamp& timeStamp )
   if ( !verify( logout, false, false ) ) return ;
   if ( !m_state.sentLogout() )
   {
-    m_state.onEvent( "Received logout request" );
+    m_state.onEvent( "Received logout request", LOG_LEVEL_NOTICE );
     generateLogout();
-    m_state.onEvent( "Sending logout response" );
+    m_state.onEvent( "Sending logout response", LOG_LEVEL_INFO );
   }
   else
-    m_state.onEvent( "Received logout response" );
+    m_state.onEvent( "Received logout response", LOG_LEVEL_NOTICE );
 
   m_state.incrNextTargetMsgSeqNum();
   if ( m_resetOnLogout ) m_state.reset();
@@ -337,7 +337,7 @@ void Session::nextSequenceReset( const Message& sequenceReset, const UtcTimeStam
 
     m_state.onEvent( "Received SequenceReset FROM: "
                      + IntConvertor::convert( getExpectedTargetNum() ) +
-                     " TO: " + IntConvertor::convert( newSeqNo ) );
+                     " TO: " + IntConvertor::convert( newSeqNo ), LOG_LEVEL_INFO );
 
     if ( newSeqNo > getExpectedTargetNum() )
       m_state.setNextTargetMsgSeqNum( MsgSeqNum( newSeqNo ) );
@@ -359,7 +359,7 @@ void Session::nextResendRequest( const Message& resendRequest, const UtcTimeStam
 
   m_state.onEvent( "Received ResendRequest FROM: "
        + IntConvertor::convert( beginSeqNo ) +
-                   " TO: " + IntConvertor::convert( endSeqNo ) );
+                   " TO: " + IntConvertor::convert( endSeqNo ), LOG_LEVEL_INFO );
 
   std::string beginString = m_sessionID.getBeginString();
   if ( (beginString >= FIX::BeginString_FIX42 && endSeqNo == 0) ||
@@ -390,7 +390,7 @@ void Session::nextResendRequest( const Message& resendRequest, const UtcTimeStam
 
   for ( i = messages.begin(); i != messages.end(); ++i )
   {
-    const DataDictionary& sessionDD = 
+    const DataDictionary& sessionDD =
       m_dataDictionaryProvider.getSessionDataDictionary(m_sessionID.getBeginString());
 
     if( m_sessionID.isFIXT() )
@@ -429,7 +429,7 @@ void Session::nextResendRequest( const Message& resendRequest, const UtcTimeStam
         if ( begin ) generateSequenceReset( begin, msgSeqNum );
         send( msg.toString(messageString) );
         m_state.onEvent( "Resending Message: "
-                         + IntConvertor::convert( msgSeqNum ) );
+                         + IntConvertor::convert( msgSeqNum ), LOG_LEVEL_INFO );
         begin = 0;
       }
       else
@@ -535,7 +535,7 @@ bool Session::sendRaw( Message& message, int num )
   }
   catch ( IOException& e )
   {
-    m_state.onEvent( e.what() );
+    m_state.onEvent( e.what(), LOG_LEVEL_ERR );
     return false;
   }
 }
@@ -553,7 +553,7 @@ void Session::disconnect()
 
   if ( m_pResponder )
   {
-    m_state.onEvent( "Disconnecting" );
+    m_state.onEvent( "Disconnecting", LOG_LEVEL_NOTICE );
 
     m_pResponder->disconnect();
     m_pResponder = 0;
@@ -597,7 +597,7 @@ bool Session::resend( Message& message )
   { return false; }
 }
 
-void Session::persist( const Message& message,  const std::string& messageString ) 
+void Session::persist( const Message& message,  const std::string& messageString )
 throw ( IOException )
 {
   MsgSeqNum msgSeqNum;
@@ -614,7 +614,7 @@ void Session::generateLogon()
   logon.setField( EncryptMethod( 0 ) );
   logon.setField( m_state.heartBtInt() );
   if( m_sessionID.isFIXT() )
-    logon.setField( DefaultApplVerID(m_senderDefaultApplVerID) );  
+    logon.setField( DefaultApplVerID(m_senderDefaultApplVerID) );
   if( m_refreshOnLogon )
     refresh();
   if( m_resetOnLogon )
@@ -637,7 +637,7 @@ void Session::generateLogon( const Message& aLogon )
   HeartBtInt heartBtInt;
   logon.setField( EncryptMethod( 0 ) );
   if( m_sessionID.isFIXT() )
-    logon.setField( DefaultApplVerID(m_senderDefaultApplVerID) );  
+    logon.setField( DefaultApplVerID(m_senderDefaultApplVerID) );
   if( m_state.receivedReset() )
     logon.setField( ResetSeqNumFlag(true) );
   aLogon.getField( heartBtInt );
@@ -665,7 +665,7 @@ void Session::generateResendRequest( const BeginString& beginString, const MsgSe
 
   m_state.onEvent( "Sent ResendRequest FROM: "
                    + IntConvertor::convert( beginSeqNo ) +
-                   " TO: " + IntConvertor::convert( endSeqNo ) );
+                   " TO: " + IntConvertor::convert( endSeqNo ), LOG_LEVEL_INFO );
 
   m_state.resendRange( beginSeqNo, msgSeqNum - 1 );
 }
@@ -687,7 +687,7 @@ void Session::generateSequenceReset
   sequenceReset.setField( GapFillFlag( true ) );
   sendRaw( sequenceReset, beginSeqNo );
   m_state.onEvent( "Sent SequenceReset TO: "
-                   + IntConvertor::convert( newSeqNo ) );
+                   + IntConvertor::convert( newSeqNo ) , LOG_LEVEL_INFO);
 }
 
 void Session::generateHeartbeat()
@@ -804,16 +804,16 @@ void Session::generateReject( const Message& message, int err, int field )
   {
     populateRejectReason( reject, field, reason );
     m_state.onEvent( "Message " + msgSeqNum.getString() + " Rejected: "
-                     + reason + ":" + IntConvertor::convert( field ) );
+                     + reason + ":" + IntConvertor::convert( field ), LOG_LEVEL_WARNING );
   }
   else if ( reason )
   {
     populateRejectReason( reject, reason );
     m_state.onEvent( "Message " + msgSeqNum.getString()
-         + " Rejected: " + reason );
+         + " Rejected: " + reason, LOG_LEVEL_WARNING );
   }
   else
-    m_state.onEvent( "Message " + msgSeqNum.getString() + " Rejected" );
+    m_state.onEvent( "Message " + msgSeqNum.getString() + " Rejected", LOG_LEVEL_WARNING );
 
   if ( !m_state.receivedLogon() )
     throw std::runtime_error( "Tried to send a reject while not logged on" );
@@ -845,7 +845,7 @@ void Session::generateReject( const Message& message, const std::string& str )
   reject.setField( Text( str ) );
   sendRaw( reject );
   m_state.onEvent( "Message " + msgSeqNum.getString()
-                   + " Rejected: " + str );
+                   + " Rejected: " + str , LOG_LEVEL_WARNING);
 }
 
 void Session::generateBusinessReject( const Message& message, int err, int field )
@@ -853,7 +853,7 @@ void Session::generateBusinessReject( const Message& message, int err, int field
   Message reject;
   reject.getHeader().setField( MsgType( MsgType_BusinessMessageReject ) );
   if( m_sessionID.isFIXT() )
-    reject.setField( DefaultApplVerID(m_senderDefaultApplVerID) );  
+    reject.setField( DefaultApplVerID(m_senderDefaultApplVerID) );
   fill( reject.getHeader() );
   MsgType msgType;
   MsgSeqNum msgSeqNum;
@@ -897,16 +897,16 @@ void Session::generateBusinessReject( const Message& message, int err, int field
   {
     populateRejectReason( reject, field, reason );
     m_state.onEvent( "Message " + msgSeqNum.getString() + " Rejected: "
-                     + reason + ":" + IntConvertor::convert( field ) );
+                     + reason + ":" + IntConvertor::convert( field ), LOG_LEVEL_WARNING );
   }
   else if ( reason )
   {
     populateRejectReason( reject, reason );
     m_state.onEvent( "Message " + msgSeqNum.getString()
-         + " Rejected: " + reason );
+         + " Rejected: " + reason, LOG_LEVEL_WARNING );
   }
   else
-    m_state.onEvent( "Message " + msgSeqNum.getString() + " Rejected" );
+    m_state.onEvent( "Message " + msgSeqNum.getString() + " Rejected", LOG_LEVEL_WARNING );
 
   sendRaw( reject );
 }
@@ -928,7 +928,7 @@ void Session::populateRejectReason( Message& reject, int field,
   MsgType msgType;
    reject.getHeader().getField( msgType );
 
-  if ( msgType == MsgType_Reject 
+  if ( msgType == MsgType_Reject
        && m_sessionID.getBeginString() >= FIX::BeginString_FIX42 )
   {
     reject.setField( RefTagID( field ) );
@@ -993,20 +993,20 @@ bool Session::verify( const Message& msg, bool checkTooHigh,
     if ( (checkTooHigh || checkTooLow) && m_state.resendRequested() )
     {
       SessionState::ResendRange range = m_state.resendRange();
- 
+
       if ( *pMsgSeqNum >= range.second )
       {
         m_state.onEvent ("ResendRequest for messages FROM: " +
                          IntConvertor::convert (range.first) + " TO: " +
                          IntConvertor::convert (range.second) +
-                         " has been satisfied.");
+                         " has been satisfied.", LOG_LEVEL_INFO);
         m_state.resendRange (0, 0);
       }
     }
   }
   catch ( std::exception& e )
   {
-    m_state.onEvent( e.what() );
+    m_state.onEvent( e.what(), LOG_LEVEL_ERR );
     disconnect();
     return false;
   }
@@ -1023,8 +1023,8 @@ bool Session::shouldSendReset()
 {
   std::string beginString = m_sessionID.getBeginString();
   return beginString >= FIX::BeginString_FIX41
-    && ( m_resetOnLogon || 
-         m_resetOnLogout || 
+    && ( m_resetOnLogon ||
+         m_resetOnLogout ||
          m_resetOnDisconnect )
     && ( getExpectedSenderNum() == 1 )
     && ( getExpectedTargetNum() == 1 );
@@ -1032,7 +1032,7 @@ bool Session::shouldSendReset()
 
 bool Session::validLogonState( const MsgType& msgType )
 {
-  if ( (msgType == MsgType_Logon && m_state.sentReset()) 
+  if ( (msgType == MsgType_Logon && m_state.sentReset())
        || (m_state.receivedReset()) )
     return true;
   if ( (msgType == MsgType_Logon && !m_state.receivedLogon())
@@ -1042,7 +1042,7 @@ bool Session::validLogonState( const MsgType& msgType )
     return true;
   if ( msgType != MsgType_Logout && m_state.sentLogout() )
     return true;
-  if ( msgType == MsgType_SequenceReset ) 
+  if ( msgType == MsgType_SequenceReset )
     return true;
   if ( msgType == MsgType_Reject )
     return true;
@@ -1132,7 +1132,7 @@ void Session::doTargetTooHigh( const Message& msg )
   m_state.onEvent( "MsgSeqNum too high, expecting "
                    + IntConvertor::convert( getExpectedTargetNum() )
                    + " but received "
-                   + IntConvertor::convert( msgSeqNum ) );
+                   + IntConvertor::convert( msgSeqNum ), LOG_LEVEL_NOTICE );
 
   m_state.queue( msgSeqNum, msg );
 
@@ -1145,7 +1145,7 @@ void Session::doTargetTooHigh( const Message& msg )
           m_state.onEvent ("Already sent ResendRequest FROM: " +
                            IntConvertor::convert (range.first) + " TO: " +
                            IntConvertor::convert (range.second) +
-                           ".  Not sending another.");
+                           ".  Not sending another.", LOG_LEVEL_INFO);
           return;
     }
   }
@@ -1166,7 +1166,7 @@ bool Session::nextQueued( int num, const UtcTimeStamp& timeStamp )
   if( m_state.retrieve( num, msg ) )
   {
     m_state.onEvent( "Processing QUEUED message: "
-                     + IntConvertor::convert( num ) );
+                     + IntConvertor::convert( num ), LOG_LEVEL_INFO );
     msg.getHeader().getField( msgType );
     if( msgType == MsgType_Logon
         || msgType == MsgType_ResendRequest )
@@ -1187,7 +1187,7 @@ void Session::next( const std::string& msg, const UtcTimeStamp& timeStamp, bool 
   try
   {
     m_state.onIncoming( msg );
-    const DataDictionary& sessionDD = 
+    const DataDictionary& sessionDD =
       m_dataDictionaryProvider.getSessionDataDictionary(m_sessionID.getBeginString());
     if( m_sessionID.isFIXT() )
     {
@@ -1202,13 +1202,13 @@ void Session::next( const std::string& msg, const UtcTimeStamp& timeStamp, bool 
   }
   catch( InvalidMessage& e )
   {
-    m_state.onEvent( e.what() );
+    m_state.onEvent( e.what(), LOG_LEVEL_ERR );
 
     try
     {
       if( identifyType(msg) == MsgType_Logon )
       {
-        m_state.onEvent( "Logon message is not valid" );
+        m_state.onEvent( "Logon message is not valid", LOG_LEVEL_ERR );
         disconnect();
       }
     } catch( MessageParseError& ) {}
@@ -1247,7 +1247,7 @@ void Session::next( const Message& message, const UtcTimeStamp& timeStamp, bool 
       }
     }
 
-    const DataDictionary& sessionDataDictionary = 
+    const DataDictionary& sessionDataDictionary =
         m_dataDictionaryProvider.getSessionDataDictionary(m_sessionID.getBeginString());
 
     if( m_sessionID.isFIXT() && message.isApp() )
@@ -1255,7 +1255,7 @@ void Session::next( const Message& message, const UtcTimeStamp& timeStamp, bool 
       ApplVerID applVerID = m_targetDefaultApplVerID;
       if( header.isSetField(FIELD::ApplVerID) )
         header.getField(applVerID);
-      const DataDictionary& applicationDataDictionary = 
+      const DataDictionary& applicationDataDictionary =
         m_dataDictionaryProvider.getApplicationDataDictionary(applVerID);
       DataDictionary::validate( message, &sessionDataDictionary, &applicationDataDictionary );
     }
@@ -1285,7 +1285,7 @@ void Session::next( const Message& message, const UtcTimeStamp& timeStamp, bool 
     }
   }
   catch ( MessageParseError& e )
-  { m_state.onEvent( e.what() ); }
+  { m_state.onEvent( e.what(), LOG_LEVEL_ERR ); }
   catch ( RequiredTagMissing & e )
   { LOGEX( generateReject( message, SessionRejectReason_REQUIRED_TAG_MISSING, e.field ) ); }
   catch ( FieldNotFound & e )
@@ -1299,7 +1299,7 @@ void Session::next( const Message& message, const UtcTimeStamp& timeStamp, bool 
       LOGEX( generateReject( message, SessionRejectReason_REQUIRED_TAG_MISSING, e.field ) );
       if ( header.getField(FIELD::MsgType) == MsgType_Logon )
       {
-        m_state.onEvent( "Required field missing from logon" );
+        m_state.onEvent( "Required field missing from logon", LOG_LEVEL_ERR );
         disconnect();
       }
     }
@@ -1330,10 +1330,10 @@ void Session::next( const Message& message, const UtcTimeStamp& timeStamp, bool 
   catch ( RepeatingGroupCountMismatch & e )
   { LOGEX( generateReject( message, SessionRejectReason_INCORRECT_NUMINGROUP_COUNT_FOR_REPEATING_GROUP, e.field ) ); }
   catch ( InvalidMessage& e )
-  { m_state.onEvent( e.what() ); }
+  { m_state.onEvent( e.what(), LOG_LEVEL_ERR ); }
   catch ( RejectLogon& e )
   {
-    m_state.onEvent( e.what() );
+    m_state.onEvent( e.what(), LOG_LEVEL_ERR );
     generateLogout( e.what() );
     disconnect();
   }
@@ -1349,7 +1349,7 @@ void Session::next( const Message& message, const UtcTimeStamp& timeStamp, bool 
   }
   catch ( IOException& e )
   {
-    m_state.onEvent( e.what() );
+    m_state.onEvent( e.what(), LOG_LEVEL_ERR );
     disconnect();
   }
 

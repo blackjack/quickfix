@@ -42,7 +42,7 @@ SocketAcceptor::SocketAcceptor( Application& application,
                                 const SessionSettings& settings,
                                 LogFactory& logFactory ) throw( ConfigError )
 : Acceptor( application, factory, settings, logFactory ),
-  m_pServer( 0 ) 
+  m_pServer( 0 )
 {
 }
 
@@ -85,10 +85,10 @@ throw ( RuntimeError )
       Dictionary settings = s.get( *i );
       port = (short)settings.getLong( SOCKET_ACCEPT_PORT );
 
-      const bool reuseAddress = settings.has( SOCKET_REUSE_ADDRESS ) ? 
+      const bool reuseAddress = settings.has( SOCKET_REUSE_ADDRESS ) ?
         s.get().getBool( SOCKET_REUSE_ADDRESS ) : true;
 
-      const bool noDelay = settings.has( SOCKET_NODELAY ) ? 
+      const bool noDelay = settings.has( SOCKET_NODELAY ) ?
         s.get().getBool( SOCKET_NODELAY ) : false;
 
       const int sendBufSize = settings.has( SOCKET_SEND_BUFFER_SIZE ) ?
@@ -98,8 +98,8 @@ throw ( RuntimeError )
         s.get().getLong( SOCKET_RECEIVE_BUFFER_SIZE ) : 0;
 
       m_portToSessions[port].insert( *i );
-      m_pServer->add( port, reuseAddress, noDelay, sendBufSize, rcvBufSize );      
-    }    
+      m_pServer->add( port, reuseAddress, noDelay, sendBufSize, rcvBufSize );
+    }
   }
   catch( SocketException& e )
   {
@@ -176,7 +176,7 @@ void SocketAcceptor::onConnect( SocketServer& server, int a, int s )
   stream << "Accepted connection from " << socket_peername( s ) << " on port " << port;
 
   if( getLog() )
-    getLog()->onEvent( stream.str() );
+    getLog()->onEvent( stream.str() , LOG_LEVEL_NOTICE);
 }
 
 void SocketAcceptor::onWrite( SocketServer& server, int s )
@@ -209,7 +209,7 @@ void SocketAcceptor::onDisconnect( SocketServer&, int s )
   m_connections.erase( s );
 }
 
-void SocketAcceptor::onError( SocketServer& ) 
+void SocketAcceptor::onError( SocketServer& )
 {
 }
 

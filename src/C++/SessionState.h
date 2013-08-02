@@ -201,7 +201,7 @@ public:
   { if ( !m_pLog ) return ; Locker l( m_mutex ); m_pLog->onIncoming( string ); }
   void onOutgoing( const std::string& string )
   { if ( !m_pLog ) return ; Locker l( m_mutex ); m_pLog->onOutgoing( string ); }
-  void onEvent( const std::string& string )
+  void onEvent( const std::string& string , int loglevel = LOG_LEVEL_NOTICE )
   { if ( !m_pLog ) return ; Locker l( m_mutex ); m_pLog->onEvent( string ); }
 
 private:

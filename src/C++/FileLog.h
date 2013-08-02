@@ -82,7 +82,7 @@ public:
   { m_messages << UtcTimeStampConvertor::convert(UtcTimeStamp(), m_millisecondsInTimeStamp) << " : " << value << std::endl; }
   void onOutgoing( const std::string& value )
   { m_messages << UtcTimeStampConvertor::convert(UtcTimeStamp(), m_millisecondsInTimeStamp) << " : " << value << std::endl; }
-  void onEvent( const std::string& value )
+  void onEvent( const std::string& value , int loglevel = LOG_LEVEL_NOTICE )
   {
     UtcTimeStamp now;
     m_event << UtcTimeStampConvertor::convert( now, m_millisecondsInTimeStamp )

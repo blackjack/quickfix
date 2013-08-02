@@ -66,7 +66,7 @@ public:
   { insert( m_incomingTable, value ); }
   void onOutgoing( const std::string& value )
   { insert( m_outgoingTable, value ); }
-  void onEvent( const std::string& value )
+  void onEvent( const std::string& value, int loglevel = LOG_LEVEL_NOTICE )
   { insert( m_eventTable, value ); }
 
 private:

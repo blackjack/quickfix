@@ -224,7 +224,7 @@ THREAD_PROC ThreadedSocketAcceptor::socketAcceptorThread( void* p )
       stream << "Accepted connection from " << socket_peername( socket ) << " on port " << port;
 
       if( pAcceptor->getLog() )
-        pAcceptor->getLog()->onEvent( stream.str() );
+        pAcceptor->getLog()->onEvent( stream.str() , LOG_LEVEL_NOTICE );
 
       thread_id thread;
       if ( !thread_spawn( &socketConnectionThread, info, thread ) )

@@ -114,7 +114,7 @@ bool SocketConnection::read( SocketConnector& s )
   }
   catch( SocketRecvFailed& e )
   {
-    m_pSession->getLog()->onEvent( e.what() );
+    m_pSession->getLog()->onEvent( e.what() , LOG_LEVEL_ERR );
     return false;
   }
   return true;
@@ -147,7 +147,7 @@ bool SocketConnection::read( SocketAcceptor& a, SocketServer& s )
         m_pSession = 0;
         if( a.getLog() )
         {
-          a.getLog()->onEvent( "Session not found for incoming message: " + msg );
+          a.getLog()->onEvent( "Session not found for incoming message: " + msg, LOG_LEVEL_WARNING );
           a.getLog()->onIncoming( msg );
         }
       }
@@ -174,7 +174,7 @@ bool SocketConnection::read( SocketAcceptor& a, SocketServer& s )
   catch ( SocketRecvFailed& e )
   {
     if( m_pSession )
-      m_pSession->getLog()->onEvent( e.what() );
+      m_pSession->getLog()->onEvent( e.what(), LOG_LEVEL_ERR );
     s.getMonitor().drop( m_socket );
   }
   catch ( InvalidMessage& )
