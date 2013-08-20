@@ -103,24 +103,19 @@ private:
   {
     if( m_calculated ) return;
 
-    char buf[64];
+	int tagLength = FIX::number_of_symbols_in( m_field ) + 1;
+	m_length = tagLength + m_string.length() + 1;
 
-    if( 13 + m_string.length() < sizeof(buf) )
-    {
-      int tagLength = STRING_SPRINTF( buf, "%d=", m_field );
-      m_length = tagLength + m_string.length() + 1;
-      memcpy( buf + tagLength, m_string.data(), m_string.length() );
-      buf[m_length - 1] = '\001';
-      m_data.assign( buf, m_length );
-    }
-    else
-    {
-      m_data = IntConvertor::convert(m_field) + "=" + m_string + "\001";
-      m_length = m_data.length();
-    }
+	m_data.resize( m_length );
 
-    const unsigned char* iter =
-      reinterpret_cast<const unsigned char*>( m_data.c_str() );
+	char * buf = (char*)m_data.c_str();
+	FIX::integer_to_string(buf, tagLength, m_field);
+
+	buf[tagLength - 1] = '=';
+	memcpy( buf + tagLength, m_string.data(), m_string.length() );
+	buf[m_length - 1] = '\001';
+
+    const unsigned char* iter = reinterpret_cast<const unsigned char*>( m_data.c_str() );
     m_total = std::accumulate( iter, iter + m_length, 0 );
 
     m_calculated = true;
@@ -339,7 +334,7 @@ public:
   UtcTimeStampField( int field, bool showMilliseconds = false )
 : FieldBase( field, UtcTimeStampConvertor::convert( UtcTimeStamp(), showMilliseconds ) ) {}
 
-  void setValue( UtcTimeStamp& value )
+  void setValue( const UtcTimeStamp& value )
     { setString( UtcTimeStampConvertor::convert( value ) ); }
   UtcTimeStamp getValue() const throw ( IncorrectDataFormat )
     { try
@@ -366,7 +361,7 @@ public:
   UtcDateField( int field )
 : FieldBase( field, UtcDateConvertor::convert( UtcDate() ) ) {}
 
-  void setValue( UtcDate& value )
+  void setValue( const UtcDate& value )
     { setString( UtcDateConvertor::convert( value ) ); }
   UtcDate getValue() const throw ( IncorrectDataFormat )
     { try
@@ -393,7 +388,7 @@ public:
   UtcTimeOnlyField( int field, bool showMilliseconds = false )
 : FieldBase( field, UtcTimeOnlyConvertor::convert( UtcTimeOnly(), showMilliseconds ) ) {}
 
-  void setValue( UtcTimeOnly& value )
+  void setValue( const UtcTimeOnly& value )
     { setString( UtcTimeOnlyConvertor::convert( value ) ); }
   UtcTimeOnly getValue() const throw ( IncorrectDataFormat )
     { try

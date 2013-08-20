@@ -30,6 +30,8 @@
 #include "SessionSettings.h"
 #include "Session.h"
 
+#include <memory>
+
 namespace FIX
 {
 SessionFactory::~SessionFactory()
@@ -121,10 +123,10 @@ Session* SessionFactory::create( const SessionID& sessionID,
     if ( heartBtInt <= 0 ) throw ConfigError( "Heartbeat must be greater than zero" );
   }
 
-  Session* pSession = 0;
-  pSession = new Session( m_application, m_messageStoreFactory,
-                          sessionID, dataDictionaryProvider, sessionTimeRange,
-                          heartBtInt, m_pLogFactory );
+  std::auto_ptr<Session> pSession;
+  pSession.reset( new Session( m_application, m_messageStoreFactory,
+    sessionID, dataDictionaryProvider, sessionTimeRange,
+    heartBtInt, m_pLogFactory ) );
 
   pSession->setSenderDefaultApplVerID(defaultApplVerID);
 
@@ -199,12 +201,12 @@ Session* SessionFactory::create( const SessionID& sessionID,
     pSession->setPersistMessages( settings.getBool( PERSIST_MESSAGES ) );
   if ( settings.has( VALIDATE_LENGTH_AND_CHECKSUM ) )
     pSession->setValidateLengthAndChecksum( settings.getBool( VALIDATE_LENGTH_AND_CHECKSUM ) );
-
-  return pSession;
+   
+  return pSession.release();
 }
 
-const DataDictionary * SessionFactory::createDataDictionary(const SessionID& sessionID,
-                                                    const Dictionary& settings,
+const DataDictionary * SessionFactory::createDataDictionary(const SessionID& sessionID, 
+                                                    const Dictionary& settings, 
                                                     const std::string& settingsKey) throw(ConfigError)
 {
   DataDictionary * pDD = 0;
@@ -234,13 +236,13 @@ const DataDictionary * SessionFactory::createDataDictionary(const SessionID& ses
   return pCopyOfDD;
 }
 
-void SessionFactory::processFixtDataDictionaries(const SessionID& sessionID,
-                                                 const Dictionary& settings,
+void SessionFactory::processFixtDataDictionaries(const SessionID& sessionID, 
+                                                 const Dictionary& settings, 
                                                  DataDictionaryProvider& provider) throw(ConfigError)
 {
   const DataDictionary * pDataDictionary = createDataDictionary(sessionID, settings, TRANSPORT_DATA_DICTIONARY);
   provider.addTransportDataDictionary(sessionID.getBeginString(), pDataDictionary);
-
+  
   for(Dictionary::const_iterator data = settings.begin(); data != settings.end(); ++data)
   {
     const std::string& key = data->first;
@@ -258,15 +260,15 @@ void SessionFactory::processFixtDataDictionaries(const SessionID& sessionID,
         if( offset == std::string::npos )
           throw ConfigError(std::string("Malformed ") + APP_DATA_DICTIONARY + ": " + key);
         std::string beginStringQualifier = key.substr(offset+1);
-        provider.addApplicationDataDictionary(Message::toApplVerID(beginStringQualifier),
+        provider.addApplicationDataDictionary(Message::toApplVerID(beginStringQualifier), 
             createDataDictionary(sessionID, settings, key));
       }
     }
   }
 }
 
-void SessionFactory::processFixDataDictionary(const SessionID& sessionID,
-                                              const Dictionary& settings,
+void SessionFactory::processFixDataDictionary(const SessionID& sessionID, 
+                                              const Dictionary& settings, 
                                               DataDictionaryProvider& provider) throw(ConfigError)
 {
   const DataDictionary * pDataDictionary = createDataDictionary(sessionID, settings, DATA_DICTIONARY);

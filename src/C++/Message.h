@@ -100,10 +100,10 @@ public:
   /// Set global data dictionary for encoding messages into XML
   static bool InitializeXML( const std::string& string );
 
-  void addGroup( FIX::Group& group )
+  void addGroup( const FIX::Group& group )
   { FieldMap::addGroup( group.field(), group ); }
 
-  void replaceGroup( unsigned num, FIX::Group& group )
+  void replaceGroup( unsigned num, const FIX::Group& group )
   { FieldMap::replaceGroup( num, group.field(), group ); }
 
   Group& getGroup( unsigned num, FIX::Group& group ) const throw( FieldNotFound )
@@ -112,14 +112,14 @@ public:
       ( FieldMap::getGroup( num, group.field(), group ) );
   }
 
-  void removeGroup( unsigned num, FIX::Group& group )
+  void removeGroup( unsigned num, const FIX::Group& group )
   { FieldMap::removeGroup( num, group.field() ); }
-  void removeGroup( FIX::Group& group )
+  void removeGroup( const FIX::Group& group )
   { FieldMap::removeGroup( group.field() ); }
 
   bool hasGroup( const FIX::Group& group ) const
   { return FieldMap::hasGroup( group.field() ); }
-  bool hasGroup( unsigned num, FIX::Group& group ) const
+  bool hasGroup( unsigned num, const FIX::Group& group ) const
   { return FieldMap::hasGroup( num, group.field() ); }
 
 protected:
@@ -330,7 +330,8 @@ private:
     if ( soh == std::string::npos )
       throw InvalidMessage("SOH not found at end of field");
 
-    if ( (pSessionDD && pSessionDD->isDataField(field)) || (pAppDD && pAppDD->isDataField(field)) )
+    if ( (pSessionDD && pSessionDD->isDataField(field)) || 
+		 (pAppDD && pAppDD != pSessionDD && pAppDD->isDataField(field)) )
     {
       // Assume length field is 1 less.
       int lenField = field - 1;
